@@ -46,7 +46,7 @@ export default function HookDisplay({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
 
-  const channelsWithHooks = [...new Set(hooks.map((h) => h.channel))] as ContactChannel[];
+  const channelsWithHooks = Array.from(new Set(hooks.map((h) => h.channel))) as ContactChannel[];
 
   function copyHook(hook: Hook) {
     const text =
