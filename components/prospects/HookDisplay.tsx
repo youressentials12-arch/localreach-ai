@@ -66,6 +66,10 @@ export default function HookDisplay({
 
   async function handleGenerate() {
     if (selectedChannels.length === 0) return;
+    if (!serviceOffered) {
+      setError("Prospectul nu este asociat cu o campanie care are un serviciu definit.");
+      return;
+    }
     setGenerating(true);
     setError("");
 
@@ -83,7 +87,7 @@ export default function HookDisplay({
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Eroare la generare");
+        setError(data.error ?? "Eroare la generare. Încearcă din nou.");
         return;
       }
 
@@ -91,6 +95,8 @@ export default function HookDisplay({
       if (data.hooks.length > 0) {
         setActiveChannel(data.hooks[0].channel);
       }
+    } catch {
+      setError("Eroare de rețea. Verifică conexiunea și încearcă din nou.");
     } finally {
       setGenerating(false);
     }

@@ -20,7 +20,7 @@ import {
   getChannelLabel,
   formatDate,
 } from "@/lib/utils";
-import type { Prospect, Hook, OutreachActivity, OutreachStatus, ContactChannel } from "@/types";
+import type { Prospect, Hook, OutreachActivity, OutreachStatus } from "@/types";
 
 const STATUS_OPTIONS: OutreachStatus[] = [
   "discovered",
@@ -53,6 +53,7 @@ export default function ProspectDetailClient({
   const [notes, setNotes] = useState(prospect.notes ?? "");
   const [savingNotes, setSavingNotes] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState("");
 
   async function handleStatusChange(status: OutreachStatus) {
     const res = await fetch("/api/prospects", {
@@ -90,19 +91,29 @@ export default function ProspectDetailClient({
   }
 
   async function handleAnalyze() {
+    if (!serviceOffered) {
+      setAnalyzeError("Prospectul nu este asociat cu o campanie care are un serviciu definit.");
+      return;
+    }
     setAnalyzing(true);
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prospectId: prospect.id,
-        serviceOffered,
-        criteria,
-      }),
-    });
-    const data = await res.json();
-    if (data.prospect) setProspect(data.prospect);
-    setAnalyzing(false);
+    setAnalyzeError("");
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prospectId: prospect.id, serviceOffered, criteria }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAnalyzeError(data.error ?? "Eroare la analiză. Încearcă din nou.");
+        return;
+      }
+      if (data.prospect) setProspect(data.prospect);
+    } catch {
+      setAnalyzeError("Eroare de rețea. Verifică conexiunea și încearcă din nou.");
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   return (
@@ -247,10 +258,15 @@ export default function ProspectDetailClient({
                   )}
                   {analyzing ? "Se re-analizează..." : "Re-analizează"}
                 </button>
+                {analyzeError && (
+                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                    {analyzeError}
+                  </p>
+                )}
               </>
             ) : (
-              <div>
-                <p className="text-sm text-[#6b7280] mb-3">
+              <div className="space-y-3">
+                <p className="text-sm text-[#6b7280]">
                   Afacerea nu a fost analizată încă.
                 </p>
                 <button
@@ -265,6 +281,11 @@ export default function ProspectDetailClient({
                   )}
                   {analyzing ? "Se analizează..." : "Analizează cu AI"}
                 </button>
+                {analyzeError && (
+                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                    {analyzeError}
+                  </p>
+                )}
               </div>
             )}
           </div>
