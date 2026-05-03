@@ -1,13 +1,19 @@
 import type { GooglePlaceResult } from "@/types";
 
-// OpenStreetMap Nominatim + Overpass API — gratuit, fără API key
-
 const NOMINATIM = "https://nominatim.openstreetmap.org";
-const OVERPASS = "https://overpass-api.de/api/interpreter";
 const UA = "LocalReach-AI/1.0 (contact@localreach.ai)";
 
+// 3 mirror-uri Overpass — lansate în paralel, primul care răspunde câștigă
+const OVERPASS_MIRRORS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+
 interface NominatimResult {
-  boundingbox: [string, string, string, string]; // [south, north, west, east]
+  lat: string;
+  lon: string;
+  boundingbox: [string, string, string, string];
   display_name: string;
 }
 
@@ -20,7 +26,6 @@ interface OverpassElement {
   tags?: Record<string, string>;
 }
 
-// Mapare industrie → taguri OSM
 function getOSMTags(industry: string): string[] {
   const lower = industry.toLowerCase();
 
@@ -51,15 +56,54 @@ function getOSMTags(industry: string): string[] {
   if (lower.includes("contabil") || lower.includes("financiar"))
     return ['["office"="accountant"]'];
 
-  // Fallback — caută după nume
   return [`["name"~"${industry.split(" ")[0]}",i]`];
 }
 
-function buildOverpassQuery(tags: string[], south: string, west: string, north: string, east: string): string {
-  const bbox = `(${south},${west},${north},${east})`;
-  const nodeLines = tags.map((t) => `  node${t}${bbox};`).join("\n");
-  const wayLines = tags.map((t) => `  way${t}${bbox};`).join("\n");
-  return `[out:json][timeout:30];\n(\n${nodeLines}\n${wayLines}\n);\nout body center 20;`;
+// Radius-based query (mult mai rapid decât bounding box pentru orașe mari)
+function buildOverpassQuery(tags: string[], lat: number, lon: number, radiusM = 8000): string {
+  const area = `(around:${radiusM},${lat},${lon})`;
+  const nodeLines = tags.map((t) => `  node${t}${area};`).join("\n");
+  const wayLines = tags.map((t) => `  way${t}${area};`).join("\n");
+  // timeout:6 pe server = serverul renunță după 6s; clientul nostru așteaptă 8s
+  return `[out:json][timeout:6];\n(\n${nodeLines}\n${wayLines}\n);\nout body center 25;`;
+}
+
+// Lansează toate mirror-urile în paralel — primul care răspunde câștigă (Promise.any)
+async function fetchOverpass(query: string): Promise<{ elements: OverpassElement[] }> {
+  const CLIENT_TIMEOUT_MS = 8000;
+  const controllers = OVERPASS_MIRRORS.map(() => new AbortController());
+
+  const attempts = OVERPASS_MIRRORS.map(async (mirror, i) => {
+    const timer = setTimeout(() => controllers[i].abort(), CLIENT_TIMEOUT_MS);
+    try {
+      const res = await fetch(mirror, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": UA,
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controllers[i].signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status} de la ${mirror}`);
+      return (await res.json()) as { elements: OverpassElement[] };
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  });
+
+  try {
+    const result = await Promise.any(attempts);
+    // Anulează celelalte cereri rămase în zbor
+    controllers.forEach((c) => c.abort());
+    return result;
+  } catch {
+    throw new Error(
+      "Serverele de căutare sunt momentan supraîncărcate. Încearcă din nou în câteva secunde."
+    );
+  }
 }
 
 function elementToPlace(el: OverpassElement): GooglePlaceResult | null {
@@ -80,13 +124,18 @@ function elementToPlace(el: OverpassElement): GooglePlaceResult | null {
 
   const phone = tags["phone"] ?? tags["contact:phone"];
   const website = tags["website"] ?? tags["contact:website"] ?? tags["url"];
-  const mapsUrl = lat && lon
-    ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}`
-    : undefined;
+  const mapsUrl =
+    lat && lon
+      ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}`
+      : undefined;
 
   const typeTag =
-    tags["amenity"] ?? tags["shop"] ?? tags["tourism"] ??
-    tags["leisure"] ?? tags["office"] ?? tags["craft"] ??
+    tags["amenity"] ??
+    tags["shop"] ??
+    tags["tourism"] ??
+    tags["leisure"] ??
+    tags["office"] ??
+    tags["craft"] ??
     tags["healthcare"];
 
   return {
@@ -106,37 +155,40 @@ export async function searchPlaces(
   industry: string,
   location: string
 ): Promise<GooglePlaceResult[]> {
-  // 1. Geocodare locație
-  const geoUrl = `${NOMINATIM}/search?q=${encodeURIComponent(location)}&format=json&limit=1&addressdetails=0`;
-  const geoRes = await fetch(geoUrl, {
-    headers: { "User-Agent": UA, "Accept-Language": "ro" },
-  });
+  // 1. Geocodare locație cu timeout de 5s
+  const geoController = new AbortController();
+  const geoTimer = setTimeout(() => geoController.abort(), 5000);
 
-  if (!geoRes.ok) throw new Error(`Geocodare eșuată: ${geoRes.status}`);
-  const geoData = (await geoRes.json()) as NominatimResult[];
-
-  if (!geoData[0]) {
-    throw new Error(`Locația "${location}" nu a fost găsită pe hartă.`);
+  let geoData: NominatimResult[];
+  try {
+    const geoUrl = `${NOMINATIM}/search?q=${encodeURIComponent(location)}&format=json&limit=1&addressdetails=0`;
+    const geoRes = await fetch(geoUrl, {
+      headers: { "User-Agent": UA, "Accept-Language": "ro" },
+      signal: geoController.signal,
+    });
+    clearTimeout(geoTimer);
+    if (!geoRes.ok) throw new Error(`status ${geoRes.status}`);
+    geoData = (await geoRes.json()) as NominatimResult[];
+  } catch {
+    clearTimeout(geoTimer);
+    throw new Error(
+      `Nu am putut localiza "${location}". Verifică numele și încearcă din nou.`
+    );
   }
 
-  const [south, north, west, east] = geoData[0].boundingbox;
+  if (!geoData[0]) {
+    throw new Error(
+      `Locația "${location}" nu a fost găsită. Încearcă cu județul sau un oraș mai mare.`
+    );
+  }
 
-  // 2. Căutare Overpass
+  const lat = parseFloat(geoData[0].lat);
+  const lon = parseFloat(geoData[0].lon);
+
+  // 2. Căutare Overpass — radius 8km în jurul centrului orașului
   const tags = getOSMTags(industry);
-  const query = buildOverpassQuery(tags, south, west, north, east);
-
-  const overpassRes = await fetch(OVERPASS, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": UA,
-    },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-
-  if (!overpassRes.ok) throw new Error(`Overpass API error: ${overpassRes.status}`);
-
-  const overpassData = await overpassRes.json() as { elements: OverpassElement[] };
+  const query = buildOverpassQuery(tags, lat, lon);
+  const overpassData = await fetchOverpass(query);
   const elements = overpassData.elements ?? [];
 
   const results: GooglePlaceResult[] = [];
@@ -153,15 +205,6 @@ export async function searchPlaces(
   return results;
 }
 
-// Place details nu mai e necesar — toate datele vin din Text Search
-export async function getPlaceDetails(
-  placeId: string
-): Promise<GooglePlaceResult> {
-  // Cu OSM, datele complete vin deja din searchPlaces
-  // Această funcție returnează un placeholder dacă e apelată direct
-  return {
-    place_id: placeId,
-    name: "Necunoscut",
-    types: [],
-  };
+export async function getPlaceDetails(placeId: string): Promise<GooglePlaceResult> {
+  return { place_id: placeId, name: "Necunoscut", types: [] };
 }
