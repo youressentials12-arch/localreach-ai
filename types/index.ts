@@ -136,3 +136,41 @@ export interface DashboardStats {
   response_rate: number;
   clients_won: number;
 }
+
+export interface ActivityFeedItem {
+  id: string;
+  activity_type: ActivityType;
+  channel?: string;
+  details?: Record<string, unknown>;
+  created_at: string;
+  prospects: { business_name: string; business_category: string | null } | null;
+}
+
+export type GoalStatus = "reached" | "on_track" | "slightly_behind" | "behind";
+
+export interface GoalProgress {
+  current: number;
+  target: number;
+  status: GoalStatus;
+}
+
+export interface UserGoals {
+  goal_prospects: number;
+  goal_contacted: number;
+  goal_replies: number;
+  goal_clients: number;
+}
+
+export type NotificationType = "follow_up" | "goal_reached" | "campaign_done" | "system";
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body?: string;
+  read: boolean;
+  prospect_id?: string;
+  campaign_id?: string;
+  created_at: string;
+}

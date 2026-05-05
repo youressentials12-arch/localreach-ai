@@ -2,6 +2,7 @@ import Sidebar from "@/components/shared/Sidebar";
 import QueryProvider from "@/components/shared/QueryProvider";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { Toaster } from "sonner";
 
 export default async function DashboardLayout({
   children,
@@ -23,6 +24,13 @@ export default async function DashboardLayout({
           <div className="max-w-7xl mx-auto px-6 py-6">{children}</div>
         </main>
       </div>
+      <Toaster
+        theme="dark"
+        position="bottom-right"
+        toastOptions={{
+          style: { background: "#16161d", border: "1px solid #2a2a3d", color: "#e2e2f0" },
+        }}
+      />
     </QueryProvider>
   );
 }

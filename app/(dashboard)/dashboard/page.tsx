@@ -5,6 +5,10 @@ import Link from "next/link";
 import DashboardChart from "@/components/campaigns/DashboardChart";
 import { Users, Megaphone, TrendingUp, Trophy } from "lucide-react";
 import { getStatusLabel, formatDate } from "@/lib/utils";
+import QuickActions from "@/components/dashboard/QuickActions";
+import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import GoalsTracker from "@/components/dashboard/GoalsTracker";
+import NotificationBell from "@/components/dashboard/NotificationBell";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -12,12 +16,12 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch all stats
   const [
     { count: totalDiscovered },
     { data: allProspects },
     { data: activeCampaigns },
     { data: topProspects },
+    followUpsRes,
   ] = await Promise.all([
     supabase
       .from("prospects")
@@ -33,7 +37,7 @@ export default async function DashboardPage() {
       .eq("user_id", user!.id)
       .eq("status", "active")
       .order("created_at", { ascending: false })
-      .limit(3),
+      .limit(6),
     supabase
       .from("prospects")
       .select("*")
@@ -42,6 +46,12 @@ export default async function DashboardPage() {
       .not("opportunity_score", "is", null)
       .order("opportunity_score", { ascending: false })
       .limit(5),
+    supabase
+      .from("prospects")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user!.id)
+      .eq("outreach_status", "contacted")
+      .lt("contacted_at", new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()),
   ]);
 
   const now = new Date();
@@ -56,15 +66,12 @@ export default async function DashboardPage() {
     allProspects?.filter((p) => p.outreach_status === "replied").length ?? 0;
   const contacted =
     allProspects?.filter((p) =>
-      ["contacted", "replied", "negotiating", "won", "lost"].includes(
-        p.outreach_status
-      )
+      ["contacted", "replied", "negotiating", "won", "lost"].includes(p.outreach_status)
     ).length ?? 0;
   const won =
     allProspects?.filter((p) => p.outreach_status === "won").length ?? 0;
   const responseRate = contacted > 0 ? Math.round((replied / contacted) * 100) : 0;
 
-  // Chart data — last 30 days
   const chartData = Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
@@ -79,78 +86,89 @@ export default async function DashboardPage() {
     };
   });
 
+  const followUpCount = followUpsRes.count ?? 0;
+  const campaignsForActions = (activeCampaigns ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    target_industry: c.target_industry,
+    target_location: c.target_location,
+  }));
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#e2e2f0]">Dashboard</h1>
-        <p className="text-[#6b7280] text-sm mt-0.5">Bine ai revenit. Iată activitatea ta.</p>
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#e2e2f0]">Dashboard</h1>
+          <p className="text-[#6b7280] text-sm mt-0.5">Bine ai revenit. Iată activitatea ta.</p>
+        </div>
+        <NotificationBell />
       </div>
+
+      {/* Quick Actions */}
+      <QuickActions campaigns={campaignsForActions} followUpCount={followUpCount} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          title="Afaceri descoperite"
-          value={totalDiscovered ?? 0}
-          icon={Users}
-        />
-        <StatsCard
-          title="Contactate luna asta"
-          value={contactedThisMonth}
-          icon={Megaphone}
-        />
+        <StatsCard title="Afaceri descoperite" value={totalDiscovered ?? 0} icon={Users} />
+        <StatsCard title="Contactate luna asta" value={contactedThisMonth} icon={Megaphone} />
         <StatsCard
           title="Rată de răspuns"
           value={`${responseRate}%`}
           subtitle={`${replied} din ${contacted} contactate`}
           icon={TrendingUp}
         />
-        <StatsCard
-          title="Clienți câștigați"
-          value={won}
-          icon={Trophy}
-        />
+        <StatsCard title="Clienți câștigați" value={won} icon={Trophy} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart */}
-        <div className="lg:col-span-2 bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-[#e2e2f0] mb-4">
-            Afaceri contactate — ultimele 30 zile
-          </h2>
-          <DashboardChart data={chartData} />
+        {/* Chart + Goals column */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4">
+            <h2 className="text-sm font-semibold text-[#e2e2f0] mb-4">
+              Afaceri contactate — ultimele 30 zile
+            </h2>
+            <DashboardChart data={chartData} />
+          </div>
+
+          <GoalsTracker />
         </div>
 
-        {/* Active campaigns */}
-        <div className="bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-[#e2e2f0]">Campanii active</h2>
-            <Link href="/campaigns" className="text-xs text-[#6366f1] hover:underline">
-              Vezi toate
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {(activeCampaigns ?? []).length === 0 ? (
-              <p className="text-[#6b7280] text-sm">Nicio campanie activă</p>
-            ) : (
-              activeCampaigns!.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/campaigns/${c.id}`}
-                  className="block bg-[#1c1c26] rounded-lg p-3 hover:border-[#6366f1] border border-transparent transition-colors"
-                >
-                  <p className="text-sm font-medium text-[#e2e2f0] truncate">{c.name}</p>
-                  <p className="text-xs text-[#6b7280] mt-0.5">
-                    {c.target_industry} · {c.target_location}
-                  </p>
-                </Link>
-              ))
-            )}
-            <Link
-              href="/campaigns/new"
-              className="block w-full text-center py-2 text-sm text-[#6366f1] hover:text-[#4f46e5] border border-dashed border-[#2a2a3d] hover:border-[#6366f1] rounded-lg transition-colors"
-            >
-              + Campanie nouă
-            </Link>
+        {/* Right column: Activity Feed + Active Campaigns */}
+        <div className="space-y-6">
+          <ActivityFeed />
+
+          <div className="bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-[#e2e2f0]">Campanii active</h2>
+              <Link href="/campaigns" className="text-xs text-[#6366f1] hover:underline">
+                Vezi toate
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {(activeCampaigns ?? []).length === 0 ? (
+                <p className="text-[#6b7280] text-sm">Nicio campanie activă</p>
+              ) : (
+                activeCampaigns!.slice(0, 3).map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/campaigns/${c.id}`}
+                    className="block bg-[#1c1c26] rounded-lg p-3 hover:border-[#6366f1] border border-transparent transition-colors"
+                  >
+                    <p className="text-sm font-medium text-[#e2e2f0] truncate">{c.name}</p>
+                    <p className="text-xs text-[#6b7280] mt-0.5">
+                      {c.target_industry} · {c.target_location}
+                    </p>
+                  </Link>
+                ))
+              )}
+              <Link
+                href="/campaigns/new"
+                className="block w-full text-center py-2 text-sm text-[#6366f1] hover:text-[#4f46e5] border border-dashed border-[#2a2a3d] hover:border-[#6366f1] rounded-lg transition-colors"
+              >
+                + Campanie nouă
+              </Link>
+            </div>
           </div>
         </div>
       </div>
