@@ -174,3 +174,89 @@ export interface AppNotification {
   campaign_id?: string;
   created_at: string;
 }
+
+// ── Follow-up system ──────────────────────────────────────────────────────────
+
+export type FollowUpChannel = "email" | "sms" | "whatsapp" | "linkedin" | "manual_call";
+export type FollowUpTone = "formal" | "casual" | "friendly" | "direct" | "professional";
+export type ScheduledFollowUpStatus = "pending" | "sent" | "cancelled" | "failed" | "skipped";
+export type CancelReason = "replied" | "unsubscribed" | "status_changed" | "manual" | "sequence_disabled";
+
+export interface FollowUpSequence {
+  id: string;
+  campaign_id: string;
+  user_id: string;
+  name: string;
+  enabled: boolean;
+  send_window_start: string;
+  send_window_end: string;
+  send_on_weekends: boolean;
+  timezone: string;
+  max_per_day: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FollowUpStep {
+  id: string;
+  sequence_id: string;
+  step_order: number;
+  delay_days: number;
+  delay_hours: number;
+  channel: FollowUpChannel;
+  subject_template?: string;
+  body_template: string;
+  tone: FollowUpTone;
+  use_ai_generation: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduledFollowUp {
+  id: string;
+  user_id: string;
+  prospect_id: string;
+  campaign_id: string;
+  sequence_id: string;
+  step_id: string;
+  step_order: number;
+  channel: FollowUpChannel;
+  scheduled_for: string;
+  status: ScheduledFollowUpStatus;
+  cancelled_reason?: CancelReason;
+  sent_at?: string;
+  outreach_message_id?: string;
+  failure_reason?: string;
+  custom_subject?: string;
+  custom_body?: string;
+  retry_count: number;
+  created_at: string;
+}
+
+export interface ScheduledFollowUpWithRelations extends ScheduledFollowUp {
+  prospects: { business_name: string; business_address?: string; business_email?: string } | null;
+  campaigns: { name: string } | null;
+  follow_up_steps: { subject_template?: string; body_template: string; use_ai_generation: boolean; tone: string } | null;
+}
+
+export interface OutreachMessage {
+  id: string;
+  prospect_id: string;
+  user_id: string;
+  campaign_id?: string;
+  channel: string;
+  subject?: string;
+  body: string;
+  sent_at: string;
+  opened_at?: string;
+  clicked_at?: string;
+  replied_at?: string;
+  created_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  plan: "starter" | "pro" | "agency";
+  created_at: string;
+  updated_at: string;
+}

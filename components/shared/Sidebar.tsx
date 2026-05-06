@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Target,
+  CalendarClock,
 } from "lucide-react";
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/campaigns", label: "Campanii", icon: Megaphone },
   { href: "/prospects", label: "Prospecți", icon: Users },
   { href: "/history", label: "Istoric CRM", icon: History },
+  { href: "/follow-ups", label: "Follow-up", icon: CalendarClock },
   { href: "/settings", label: "Setări", icon: Settings },
 ];
 

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, Loader2, ArrowLeft, MapPin, Briefcase } from "lucide-react";
+import * as Tabs from "@radix-ui/react-tabs";
 import ProspectCard from "@/components/prospects/ProspectCard";
+import SequenceBuilder from "@/components/follow-ups/SequenceBuilder";
 import type { Campaign, Prospect } from "@/types";
 
 interface Props {
@@ -103,113 +105,136 @@ export default function CampaignDetailClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left panel — campaign info */}
-        <div className="space-y-4">
-          <div className="bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-[#e2e2f0]">
-              Detalii campanie
-            </h3>
+      <Tabs.Root defaultValue="prospects">
+        <Tabs.List className="flex gap-1 bg-[#16161d] border border-[#2a2a3d] rounded-xl p-1 w-fit mb-6">
+          {[
+            { value: "prospects", label: "Prospecți" },
+            { value: "sequence", label: "Secvență follow-up" },
+          ].map((tab) => (
+            <Tabs.Trigger
+              key={tab.value}
+              value={tab.value}
+              className="px-4 py-2 text-sm rounded-lg text-[#6b7280] data-[state=active]:bg-[#6366f1] data-[state=active]:text-white data-[state=active]:font-medium transition-colors hover:text-[#e2e2f0]"
+            >
+              {tab.label}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
 
-            <div className="flex items-start gap-2 text-sm">
-              <Briefcase size={14} className="text-[#6366f1] mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[#6b7280] text-xs">Serviciu oferit</p>
-                <p className="text-[#e2e2f0]">{campaign.service_offered}</p>
+        <Tabs.Content value="prospects">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left panel — campaign info */}
+            <div className="space-y-4">
+              <div className="bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-[#e2e2f0]">
+                  Detalii campanie
+                </h3>
+
+                <div className="flex items-start gap-2 text-sm">
+                  <Briefcase size={14} className="text-[#6366f1] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[#6b7280] text-xs">Serviciu oferit</p>
+                    <p className="text-[#e2e2f0]">{campaign.service_offered}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin size={14} className="text-[#6366f1] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-[#6b7280] text-xs">Locație</p>
+                    <p className="text-[#e2e2f0]">{campaign.target_location}</p>
+                  </div>
+                </div>
+
+                {campaign.description && (
+                  <p className="text-xs text-[#6b7280] pt-1 border-t border-[#2a2a3d]">
+                    {campaign.description}
+                  </p>
+                )}
               </div>
-            </div>
 
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin size={14} className="text-[#6366f1] mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[#6b7280] text-xs">Locație</p>
-                <p className="text-[#e2e2f0]">{campaign.target_location}</p>
-              </div>
-            </div>
+              {activeCriteria.length > 0 && (
+                <div className="bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-[#e2e2f0] mb-2">
+                    Criterii de calificare
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeCriteria.map((k) => (
+                      <span
+                        key={k}
+                        className="text-xs bg-[#6366f1]/15 text-[#6366f1] px-2 py-0.5 rounded-full"
+                      >
+                        {CRITERIA_LABELS[k] ?? k}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {campaign.description && (
-              <p className="text-xs text-[#6b7280] pt-1 border-t border-[#2a2a3d]">
-                {campaign.description}
+              <button
+                onClick={handleSearch}
+                disabled={searching}
+                className="w-full flex items-center justify-center gap-2 bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"
+              >
+                {searching ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Search size={16} />
+                )}
+                {searching ? "Se caută..." : "Caută afaceri"}
+              </button>
+
+              {searchError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-sm text-red-400">
+                  {searchError}
+                </div>
+              )}
+              {searchMessage && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 text-sm text-green-400">
+                  {searchMessage}
+                </div>
+              )}
+
+              <p className="text-xs text-[#6b7280] text-center">
+                {prospects.length} afaceri găsite
               </p>
-            )}
+            </div>
+
+            {/* Right panel — prospects grid */}
+            <div className="lg:col-span-2">
+              {prospects.length === 0 ? (
+                <div className="bg-[#16161d] border border-[#2a2a3d] border-dashed rounded-xl p-12 text-center">
+                  <Search size={40} className="text-[#2a2a3d] mx-auto mb-3" />
+                  <p className="text-[#e2e2f0] font-medium mb-1">
+                    Nicio afacere găsită încă
+                  </p>
+                  <p className="text-[#6b7280] text-sm">
+                    Apasă &quot;Caută afaceri&quot; pentru a descoperi oportunități
+                    în {campaign.target_location}.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {prospects.map((p) => (
+                    <ProspectCard
+                      key={p.id}
+                      prospect={p}
+                      campaignId={campaign.id}
+                      serviceOffered={campaign.service_offered}
+                      criteria={campaign.qualification_criteria as Record<string, boolean>}
+                      onUpdate={handleProspectUpdate}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+        </Tabs.Content>
 
-          {activeCriteria.length > 0 && (
-            <div className="bg-[#16161d] border border-[#2a2a3d] rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-[#e2e2f0] mb-2">
-                Criterii de calificare
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {activeCriteria.map((k) => (
-                  <span
-                    key={k}
-                    className="text-xs bg-[#6366f1]/15 text-[#6366f1] px-2 py-0.5 rounded-full"
-                  >
-                    {CRITERIA_LABELS[k] ?? k}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={handleSearch}
-            disabled={searching}
-            className="w-full flex items-center justify-center gap-2 bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"
-          >
-            {searching ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Search size={16} />
-            )}
-            {searching ? "Se caută..." : "Caută afaceri"}
-          </button>
-
-          {searchError && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-sm text-red-400">
-              {searchError}
-            </div>
-          )}
-          {searchMessage && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 text-sm text-green-400">
-              {searchMessage}
-            </div>
-          )}
-
-          <p className="text-xs text-[#6b7280] text-center">
-            {prospects.length} afaceri găsite
-          </p>
-        </div>
-
-        {/* Right panel — prospects grid */}
-        <div className="lg:col-span-2">
-          {prospects.length === 0 ? (
-            <div className="bg-[#16161d] border border-[#2a2a3d] border-dashed rounded-xl p-12 text-center">
-              <Search size={40} className="text-[#2a2a3d] mx-auto mb-3" />
-              <p className="text-[#e2e2f0] font-medium mb-1">
-                Nicio afacere găsită încă
-              </p>
-              <p className="text-[#6b7280] text-sm">
-                Apasă &quot;Caută afaceri&quot; pentru a descoperi oportunități
-                în {campaign.target_location}.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {prospects.map((p) => (
-                <ProspectCard
-                  key={p.id}
-                  prospect={p}
-                  campaignId={campaign.id}
-                  serviceOffered={campaign.service_offered}
-                  criteria={campaign.qualification_criteria as Record<string, boolean>}
-                  onUpdate={handleProspectUpdate}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+        <Tabs.Content value="sequence">
+          <SequenceBuilder campaignId={campaign.id} />
+        </Tabs.Content>
+      </Tabs.Root>
     </div>
   );
 }
