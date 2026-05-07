@@ -13,15 +13,17 @@ import {
   LogOut,
   Target,
   CalendarClock,
+  BarChart3,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/campaigns", label: "Campanii", icon: Megaphone },
-  { href: "/prospects", label: "Prospecți", icon: Users },
-  { href: "/history", label: "Istoric CRM", icon: History },
-  { href: "/follow-ups", label: "Follow-up", icon: CalendarClock },
-  { href: "/settings", label: "Setări", icon: Settings },
+  { href: "/dashboard",  label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/campaigns",  label: "Campanii",     icon: Megaphone },
+  { href: "/prospects",  label: "Prospecți",    icon: Users },
+  { href: "/history",    label: "Istoric CRM",  icon: History },
+  { href: "/follow-ups", label: "Follow-up",    icon: CalendarClock },
+  { href: "/analytics",  label: "Analytics",    icon: BarChart3 },
+  { href: "/settings",   label: "Setări",       icon: Settings },
 ];
 
 export default function Sidebar() {
