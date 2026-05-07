@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Lock, Zap, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
+import UpgradeButton from "@/components/shared/UpgradeButton";
 
 interface Props {
   children: React.ReactNode;
@@ -82,12 +82,9 @@ export default function ProPlanGate({ children }: Props) {
                   </div>
                 ))}
               </div>
-              <Link
-                href="/settings"
-                className="block w-full text-center bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold py-3 rounded-xl transition-colors"
-              >
-                Vezi planurile
-              </Link>
+              <UpgradeButton className="w-full justify-center bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors inline-flex items-center gap-2">
+                Upgradează la Pro
+              </UpgradeButton>
             </div>
           </div>
         )}

@@ -2,8 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Lock } from "lucide-react";
+import UpgradeButton from "@/components/shared/UpgradeButton";
 import AnalyticsFilters    from "@/components/analytics/AnalyticsFilters";
 import KPIOverview         from "@/components/analytics/KPIOverview";
 import ChannelResponseChart from "@/components/analytics/ChannelResponseChart";
@@ -64,12 +64,7 @@ function ProGate({ children, locked }: { children: React.ReactNode; locked: bool
           <p className="text-[#6b7280] text-xs mb-5 max-w-[220px] leading-relaxed">
             Cost per client, harta timpului optim și performanța hook-urilor sunt disponibile pentru abonații Pro.
           </p>
-          <Link
-            href="/settings"
-            className="bg-[#6366f1] hover:bg-[#4f46e5] text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors inline-block"
-          >
-            Upgradează acum
-          </Link>
+          <UpgradeButton />
         </div>
       </div>
     </div>
