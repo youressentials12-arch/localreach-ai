@@ -11,8 +11,8 @@ const plans = [
     monthly: 29,
     annual: 23,
     features: ["100 afaceri/lună", "50 hook-uri/lună", "2 campanii active", "CRM basic", "Export CSV", "Email support"],
-    cta: "Încearcă Gratuit",
-    href: "/signup",
+    cta: "Înregistrează-te pentru lansare",
+    href: "/signup?ref=prelaunch",
     highlight: false,
   },
   {
@@ -25,8 +25,8 @@ const plans = [
       "Scor Oportunitate AI", "Analiză website+social", "Follow-up automatizat",
       "Analytics avansat", "AI Asistent Obiecții",
     ],
-    cta: "Începe Acum →",
-    href: "/signup",
+    cta: "Înregistrează-te pentru lansare",
+    href: "/signup?ref=prelaunch",
     highlight: true,
   },
   {
@@ -37,8 +37,8 @@ const plans = [
       "2.000 afaceri/lună", "Hook-uri nelimitate", "Campanii nelimitate",
       "5 useri în cont", "White-label +€50/lună", "API access", "Onboarding dedicat",
     ],
-    cta: "Contactează-ne",
-    href: "/signup",
+    cta: "Înregistrează-te pentru lansare",
+    href: "/signup?ref=prelaunch",
     highlight: false,
   },
 ];

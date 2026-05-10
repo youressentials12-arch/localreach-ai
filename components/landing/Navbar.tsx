@@ -53,10 +53,10 @@ export default function Navbar() {
             Intră în cont
           </Link>
           <Link
-            href="/signup"
+            href="/signup?ref=prelaunch"
             className="text-sm bg-[#6366f1] hover:bg-[#4f46e5] text-white px-4 py-2 rounded-full font-medium transition-all hover:scale-105"
           >
-            Încearcă Gratuit
+            Înregistrează-te pentru lansare
           </Link>
         </div>
 
@@ -88,10 +88,10 @@ export default function Navbar() {
               Intră în cont
             </Link>
             <Link
-              href="/signup"
+              href="/signup?ref=prelaunch"
               className="text-sm bg-[#6366f1] text-white px-4 py-2.5 rounded-full font-medium text-center"
             >
-              Încearcă Gratuit
+              Înregistrează-te pentru lansare
             </Link>
           </div>
         </div>

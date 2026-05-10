@@ -1,5 +1,6 @@
 import Navbar from "@/components/landing/Navbar";
 import Hero from "@/components/landing/Hero";
+import PrelaunchBanner from "@/components/landing/PrelaunchBanner";
 import StatsBar from "@/components/landing/StatsBar";
 import ProblemSection from "@/components/landing/ProblemSection";
 import HowItWorks from "@/components/landing/HowItWorks";
@@ -15,6 +16,7 @@ import Footer from "@/components/landing/Footer";
 export default function LandingPage() {
   return (
     <main className="bg-[#080810] text-white overflow-x-hidden">
+      <PrelaunchBanner />
       <Navbar />
       <Hero />
       <StatsBar />

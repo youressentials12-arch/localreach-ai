@@ -59,10 +59,10 @@ export default function Hero() {
         {/* CTAs */}
         <motion.div {...fade(0.3)} className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
           <Link
-            href="/signup"
+            href="/signup?ref=prelaunch"
             className="group flex items-center gap-2 bg-[#6366f1] hover:bg-[#4f46e5] text-white px-7 py-3.5 rounded-full font-semibold text-base transition-all hover:scale-[1.03] glow-indigo"
           >
-            Încearcă Gratuit 7 Zile
+            Înregistrează-te pentru lansare
             <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
           <a

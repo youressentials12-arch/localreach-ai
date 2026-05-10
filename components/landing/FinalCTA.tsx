@@ -31,7 +31,7 @@ export default function FinalCTA() {
               className="inline-flex items-center gap-2 bg-[#6366f1]/15 border border-[#6366f1]/25 rounded-full px-4 py-1.5 mb-6"
             >
               <Zap size={12} className="text-[#a3e635]" />
-              <span className="text-xs text-[#6366f1] font-semibold">7 zile trial gratuit</span>
+              <span className="text-xs text-[#6366f1] font-semibold">Pre-lansare · 30% reducere la Pro</span>
             </motion.div>
 
             <motion.h2
@@ -51,8 +51,9 @@ export default function FinalCTA() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-[#9ca3af] text-base sm:text-lg mb-10 max-w-xl mx-auto leading-relaxed"
             >
-              Încearcă gratuit 7 zile. Fără card. Fără contract.
-              Dacă nu găsești cel puțin 10 prospecți calificați în prima oră — îți returnăm banii.
+              Înregistrează-te acum și primești cod de reducere{" "}
+              <span className="text-[#a3e635] font-semibold">PRELAUNCH30</span> — 30% off la Pro prima lună.
+              Limitat la primii 100 utilizatori.
             </motion.p>
 
             <motion.div
@@ -62,10 +63,10 @@ export default function FinalCTA() {
               className="flex flex-col sm:flex-row gap-3 justify-center"
             >
               <Link
-                href="/signup"
+                href="/signup?ref=prelaunch"
                 className="inline-flex items-center justify-center gap-2 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-[#6366f1]/25 hover:shadow-[#6366f1]/40"
               >
-                Începe Gratuit
+                Înregistrează-te pentru lansare
                 <ArrowRight size={16} />
               </Link>
               <Link
